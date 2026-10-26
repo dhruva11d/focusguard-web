@@ -1,26 +1,99 @@
 @import "tailwindcss";
 
+/*
+ * "Pearl Iris" — ported 1:1 from the Flutter app's AppColors
+ * (lib/app/theme/app_colors.dart). Light only — the Flutter app is
+ * light-mode only, and this web app matches that rather than adding a
+ * dark mode of its own.
+ *
+ * Anything under `--color-*`/`--radius-*`/`--font-*` here is a Tailwind
+ * v4 theme key: Tailwind generates the matching utility classes from it
+ * directly (e.g. `--color-accent` → `bg-accent`/`text-accent`,
+ * `--radius-lg` → `rounded-lg`). Values that aren't Tailwind utilities
+ * (the glass recipe, motion durations) live in a plain `:root` block
+ * below instead.
+ */
+@theme {
+  --font-sans: var(--font-jost);
+
+  --color-background: #f4f5f8; /* Pearl Mist */
+  --color-surface: #ffffff;
+  --color-surface-raised: #e9edf5; /* Cloud Blue */
+  --color-on-background: #202434; /* Deep Ink */
+  --color-on-background-muted: #687084; /* Slate Mist */
+  --color-on-background-faint: #a4aab8; /* Silver Slate */
+  --color-hairline: rgb(32 36 52 / 10.2%);
+  --color-glow-blue: #8eb8d8; /* Misty Sky */
+  --color-glow-violet: #9a91de; /* Lavender Blue */
+
+  /* The one dark "hero" surface — the focus timer / shared session card. */
+  --color-hero-surface: #20283a; /* Midnight Ink */
+  --color-hero-surface-gradient-end: #35415a; /* Slate Blue */
+  --color-hero-on-surface: #f4f5f8;
+  --color-hero-on-surface-muted: #a4aab8;
+
+  /* The single brand accent — never a second competing interactive hue. */
+  --color-accent: #6875d8; /* Soft Iris */
+  --color-lavender: #9a91de;
+  --color-misty-sky: #8eb8d8;
+  --color-muted-coral: #d98f8d;
+
+  /* Semantic state colors — muted, independent from the brand palette. */
+  --color-secure: #38a982;
+  --color-pending: #c18a3a;
+  --color-violation: #d45b61;
+  --color-offline: #7c8494;
+
+  /* Matches AppRadii exactly (lib/app/theme/app_spacing.dart) — overrides
+     Tailwind's default rounded-sm/md/lg/xl values rather than adding new
+     names, so an ordinary `rounded-lg` already matches the Flutter app. */
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-lg: 22px;
+  --radius-xl: 32px;
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+  /* Glass recipe (see lib/design/glass_surface.dart). Not Tailwind theme
+     keys — used directly in component CSS/inline styles. */
+  --glass-fill: rgb(255 255 255 / 55%);
+  --glass-border: rgb(255 255 255 / 60%);
+  --glass-highlight: rgb(255 255 255 / 75%);
+  --glass-blur: 22px;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  /* Motion vocabulary (lib/app/theme/app_motion.dart). */
+  --motion-fast: 140ms;
+  --motion-fast-ease: ease-out;
+  --motion-medium: 380ms;
+  --motion-medium-ease: cubic-bezier(0.645, 0.045, 0.355, 1);
+  --motion-expressive: 600ms;
+  --motion-ambient: 16s;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-background);
+  color: var(--color-on-background);
+}
+
+/* The sweeping-gradient shimmer `Skeleton` uses while a tab's content is
+   still loading — a moving highlight across a flat muted fill, not a
+   plain opacity pulse. */
+@keyframes shimmer-sweep {
+  0% {
+    background-position: -150% 0;
+  }
+  100% {
+    background-position: 150% 0;
+  }
+}
+
+.shimmer {
+  background-image: linear-gradient(
+    100deg,
+    var(--color-surface-raised) 40%,
+    rgb(255 255 255 / 70%) 50%,
+    var(--color-surface-raised) 60%
+  );
+  background-size: 250% 100%;
+  animation: shimmer-sweep 1.6s ease-in-out infinite;
 }
