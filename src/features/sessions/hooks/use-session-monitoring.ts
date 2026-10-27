@@ -7,7 +7,7 @@ import {
   joinSession,
   updateParticipantState,
 } from "../api/sessions";
-import { watchFaceDown } from "../lib/face-down-sensor";
+import { watchFaceDown, type MotionSource } from "../lib/face-down-sensor";
 import type { ParticipantSessionState } from "../types";
 
 const HEARTBEAT_INTERVAL_MS = 15_000;
@@ -20,9 +20,9 @@ const FACE_UP_GRACE_MS = 2_500;
 /**
  * - `setup`: joined, still on the "place your phone" step. A hidden tab
  *   already counts; nothing else does yet.
- * - `face-down`: a phone with an orientation sensor — must stay face
- *   down (the Flutter app's placement check, via the Device Orientation
- *   API) as well as visible.
+ * - `face-down`: a phone — must stay face down (the Flutter app's
+ *   placement check, read from whichever `motionSource` setup detected)
+ *   as well as visible.
  * - `tab-only`: the host, who runs the dashboard and has no placement
  *   step — the tab just has to stay visible. Never a participant
  *   fallback: SessionView keeps a participant on `setup` until face-down
@@ -55,11 +55,14 @@ export function useSessionMonitoring({
   userId,
   active,
   mode,
+  motionSource,
 }: {
   sessionId: string;
   userId: string;
   active: boolean;
   mode: MonitoringMode;
+  /** Required in face-down mode; ignored otherwise. */
+  motionSource: MotionSource | null;
 }) {
   const [localState, setLocalState] = useState<ParticipantSessionState>(
     mode === "tab-only" ? "focusing" : "preparing",
@@ -163,8 +166,8 @@ export function useSessionMonitoring({
     }
 
     const unwatch =
-      mode === "face-down"
-        ? watchFaceDown(({ faceDown: next, live }) => {
+      mode === "face-down" && motionSource
+        ? watchFaceDown(motionSource, ({ faceDown: next, live }) => {
             setSensorLive(live);
             if (next === faceDownRef.current) return;
             faceDownRef.current = next;
@@ -180,7 +183,7 @@ export function useSessionMonitoring({
       unwatch?.();
       clearGrace();
     };
-  }, [active, joined, mode, sessionId, userId]);
+  }, [active, joined, mode, motionSource, sessionId, userId]);
 
   const markCompleted = useCallback(() => {
     stateRef.current = "completed";

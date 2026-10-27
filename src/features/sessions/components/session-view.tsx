@@ -10,9 +10,11 @@ import { Hairline } from "@/components/ui/hairline";
 import { SectionLabel } from "@/components/ui/section-label";
 import { completeSession, endSessionEarly, getSession } from "../api/sessions";
 import {
-  detectOrientationSensor,
-  isLikelyPhone,
+  detectMotionSource,
+  getPlatform,
   requestOrientationAccess,
+  type MotionSource,
+  type Platform,
 } from "../lib/face-down-sensor";
 import { useSessionMonitoring, type MonitoringMode } from "../hooks/use-session-monitoring";
 import { useWakeLock, type WakeLockStatus } from "../hooks/use-wake-lock";
@@ -43,9 +45,11 @@ function computeRemainingSeconds(endTime: string | null): number {
  *
  * A participant starts on a placement step (the web's PlacementView):
  * tapping "Start" is the user gesture iOS requires before it will grant
- * motion access. Participants are always on a phone, so face-down mode
- * is required, not best-effort: if motion access is blocked or the
- * browser reports no sensor (typically WhatsApp's in-app browser), they
+ * motion access. Participants are always on a phone — an iPhone or an
+ * Android phone, with platform-specific instructions for each — so
+ * face-down mode is required, not best-effort: if motion access is
+ * blocked or the browser reports no sensor (typically an in-app browser
+ * like WhatsApp's, or Chrome's motion-sensor site setting), they
  * stay on the placement step with instructions — and keep showing as
  * "Preparing" on the host's dashboard — rather than silently dropping to
  * a weaker check. The host skips it (they're running the dashboard) and
@@ -80,14 +84,17 @@ export function SessionView({
   const completedRef = useRef(false);
 
   const active = remaining > 0;
-  // Assumed true on the server so phones (the normal case) never flash
-  // the "open this on your phone" screen during hydration.
-  const isPhone = useSyncExternalStore(subscribeToNothing, isLikelyPhone, () => true);
+  // Assumed a phone on the server so phones (the only supported case)
+  // never flash the "open this on your phone" screen during hydration.
+  const platform = useSyncExternalStore(subscribeToNothing, getPlatform, () => "ios" as Platform);
+  const isPhone = platform !== "other";
+  const [motionSource, setMotionSource] = useState<MotionSource | null>(null);
   const { localState, violationCount, faceDown, sensorLive, markCompleted } = useSessionMonitoring({
     sessionId: session.id,
     userId: currentUserId,
     active,
     mode,
+    motionSource,
   });
   // A face-down phone would otherwise auto-lock within a minute or two,
   // hiding the tab; a host's laptop sleeping would stop the dashboard.
@@ -136,12 +143,13 @@ export function SessionView({
       setStartingMonitoring(false);
       return;
     }
-    const hasSensor = await detectOrientationSensor();
-    if (!hasSensor) {
+    const source = await detectMotionSource();
+    if (!source) {
       setSetupProblem("no-sensor");
       setStartingMonitoring(false);
       return;
     }
+    setMotionSource(source);
     setMode("face-down");
     setStartingMonitoring(false);
   }
@@ -196,16 +204,23 @@ export function SessionView({
             {startingMonitoring ? "Starting…" : "Start focus monitoring"}
           </PrimaryActionButton>
           {setupProblem ? (
-            <SetupProblemHelp problem={setupProblem} />
+            <SetupProblemHelp problem={setupProblem} platform={platform} />
           ) : (
-            <p className="pt-3 text-center text-[13px] text-on-background-muted">
-              Tap Allow when asked for motion access — it&rsquo;s how FocusGuard knows your
-              phone is face down.
-            </p>
+            <>
+              <p className="pt-3 text-center text-[13px] text-on-background-muted">
+                {platform === "ios"
+                  ? "Tap Allow when asked for motion access — it’s how FocusGuard knows your phone is face down."
+                  : "Your phone’s motion sensor is how FocusGuard knows it’s face down — keep this page open."}
+              </p>
+              {platform === "android" && <PocketModeTip />}
+            </>
           )}
         </>
       )}
-      {active && mode === "face-down" && <WakeLockWarning status={wakeLock} />}
+      {active && mode === "face-down" && <WakeLockWarning status={wakeLock} platform={platform} />}
+      {active && mode === "face-down" && platform === "android" && localState === "violation" && (
+        <PocketModeTip />
+      )}
 
       {isHost && (
         <>
@@ -302,8 +317,9 @@ function statusCopy({
 }
 
 /** Shown in place of the usual hint when Start couldn't enable face-down
- * detection — the two ways that fails on an iPhone, and the fix for each. */
-function SetupProblemHelp({ problem }: { problem: SetupProblem }) {
+ * detection, with the fix for this platform. "denied" only happens on
+ * iOS — Android has no motion prompt. */
+function SetupProblemHelp({ problem, platform }: { problem: SetupProblem; platform: Platform }) {
   if (problem === "denied") {
     return (
       <div className="pt-4 text-center">
@@ -313,6 +329,20 @@ function SetupProblemHelp({ problem }: { problem: SetupProblem }) {
           tap Start again, then choose Allow. If you&rsquo;re not asked again, close this tab
           and open the link fresh in Safari.
         </p>
+      </div>
+    );
+  }
+  if (platform === "android") {
+    return (
+      <div className="pt-4 text-center">
+        <p className="text-[15px] font-medium text-violation">Open this link in Chrome</p>
+        <p className="pt-1 text-[13px] text-on-background-muted">
+          This browser isn&rsquo;t sharing your phone&rsquo;s motion sensor. Copy the link, open
+          it in Chrome (not inside WhatsApp or another app), and sign in there. Already in
+          Chrome? Check Chrome › Settings › Site settings › Motion sensors is allowed, then
+          reload.
+        </p>
+        <CopyLinkButton />
       </div>
     );
   }
@@ -339,7 +369,7 @@ function NotAPhoneHelp() {
       <p className="pt-1 text-[13px] text-on-background-muted">
         FocusGuard checks that your phone stays face down during the session, so it has to
         run on the phone itself — not a laptop or computer. Send yourself this link, open it
-        in Safari on your phone, and sign in there.
+        on your phone (Safari on iPhone, Chrome on Android), and sign in there.
       </p>
       <CopyLinkButton />
     </div>
@@ -365,15 +395,34 @@ function CopyLinkButton() {
   );
 }
 
-/** If the screen can't be held on, iOS auto-lock will hide the tab
+/**
+ * Some Android phones (common on Xiaomi, Realme and Samsung models) turn
+ * the screen off when it's face down or the proximity sensor is covered —
+ * "Pocket mode" / "Prevent accidental touches". That hides the page,
+ * which counts as an interruption, so honest students need to know to
+ * turn it off. Shown before Start, and again after an interruption, when
+ * a screen that switched itself off is the likely explanation.
+ */
+function PocketModeTip() {
+  return (
+    <p className="pt-3 text-center text-[13px] text-pending">
+      If your screen turns off by itself when placed face down, turn off Pocket mode or
+      &ldquo;Prevent accidental touches&rdquo; in Settings › Display (or Settings › Lock
+      screen) — otherwise it counts as an interruption.
+    </p>
+  );
+}
+
+/** If the screen can't be held on, auto-lock will hide the tab
  * mid-session and charge the student a violation they didn't commit —
- * so say so up front, with the setting that prevents it. */
-function WakeLockWarning({ status }: { status: WakeLockStatus }) {
+ * so say so up front, with this platform's setting that prevents it. */
+function WakeLockWarning({ status, platform }: { status: WakeLockStatus; platform: Platform }) {
   if (status !== "failed") return null;
   return (
     <p className="pt-4 text-center text-[13px] text-pending">
-      Your screen may lock by itself, which counts as an interruption. Turn off Low Power Mode,
-      or set Settings › Display &amp; Brightness › Auto-Lock to Never for this session.
+      {platform === "android"
+        ? "Your screen may turn off by itself, which counts as an interruption. Turn off Battery Saver, or set Settings › Display › Screen timeout to the longest option for this session."
+        : "Your screen may lock by itself, which counts as an interruption. Turn off Low Power Mode, or set Settings › Display & Brightness › Auto-Lock to Never for this session."}
     </p>
   );
 }
