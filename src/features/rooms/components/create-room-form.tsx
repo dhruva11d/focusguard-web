@@ -18,7 +18,7 @@ const DEFAULT_DURATION_MINUTES = 25;
  * it again here would be redundant (and is worth fixing on the Flutter
  * side too).
  */
-export function CreateRoomForm({ hostUserId }: { hostUserId: string }) {
+export function CreateRoomForm() {
   const router = useRouter();
   const [name, setName] = useState("");
   const [minutes, setMinutes] = useState(DEFAULT_DURATION_MINUTES);
@@ -32,7 +32,7 @@ export function CreateRoomForm({ hostUserId }: { hostUserId: string }) {
     setSubmitting(true);
     setError(null);
 
-    const result = await createRoom({ name: name.trim(), hostUserId });
+    const result = await createRoom({ name: name.trim() });
     if (!result.data) {
       setSubmitting(false);
       setError(result.error);

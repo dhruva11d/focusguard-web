@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { PrimaryActionButton } from "@/components/ui/button";
 import { SectionLabel } from "@/components/ui/section-label";
-import { findOpenRoomByCode, joinRoom } from "../api/rooms";
+import { joinRoom } from "../api/rooms";
 
 const ROOM_CODE_LENGTH = 6;
 
@@ -13,7 +13,7 @@ const ROOM_CODE_LENGTH = 6;
  * same reason as CreateRoomForm: the display name now comes from the
  * signed-in account.
  */
-export function JoinRoomForm({ userId }: { userId: string }) {
+export function JoinRoomForm() {
   const router = useRouter();
   const [code, setCode] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -26,20 +26,13 @@ export function JoinRoomForm({ userId }: { userId: string }) {
     setSubmitting(true);
     setError(null);
 
-    const roomResult = await findOpenRoomByCode(code);
-    if (!roomResult.data) {
-      setSubmitting(false);
-      setError(roomResult.error);
-      return;
-    }
-
-    const joinResult = await joinRoom({ roomId: roomResult.data.id, userId });
+    const joinResult = await joinRoom({ code });
     setSubmitting(false);
     if (joinResult.error) {
       setError(joinResult.error);
       return;
     }
-    router.push(`/workshop/room/${roomResult.data.id}`);
+    router.push(`/workshop/room/${joinResult.data}`);
   }
 
   return (

@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  getOwnViolationCount,
   heartbeat,
   joinSession,
   updateParticipantState,
@@ -85,8 +84,7 @@ export function useSessionMonitoring({
     if (!active) return;
     let cancelled = false;
     (async () => {
-      await joinSession({ communitySessionId: sessionId, userId });
-      const recorded = await getOwnViolationCount({ communitySessionId: sessionId, userId });
+      const recorded = await joinSession({ communitySessionId: sessionId });
       if (cancelled) return;
       violationCountRef.current = Math.max(violationCountRef.current, recorded);
       setViolationCount(violationCountRef.current);

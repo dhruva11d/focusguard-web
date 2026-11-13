@@ -37,10 +37,6 @@ export function AuthForm() {
     setNotice(null);
   }
 
-  function verificationRedirect() {
-    return `${window.location.origin}/email-verified`;
-  }
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
@@ -54,7 +50,6 @@ export function AuthForm() {
         password,
         displayName: displayName.trim(),
         role,
-        emailRedirectTo: verificationRedirect(),
       });
       if (result.error) {
         setBusy(false);
@@ -87,7 +82,6 @@ export function AuthForm() {
     setError(null);
     const result = await resendVerification({
       email: pendingVerificationEmail,
-      emailRedirectTo: verificationRedirect(),
     });
     setBusy(false);
     if (result.error) {
