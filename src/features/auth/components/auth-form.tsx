@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { PrimaryActionButton } from "@/components/ui/button";
 import { register, signIn, resendVerification } from "../api/auth";
@@ -24,6 +24,75 @@ export function AuthForm() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [pendingVerificationEmail, setPendingVerificationEmail] = useState<string | null>(null);
+
+  const [backendConnecting, setBackendConnecting] = useState(false);
+  const [backendLongWait, setBackendLongWait] = useState(false);
+
+  useEffect(() => {
+    let disposed = false;
+    let ready = false;
+    let attempt = 0;
+    let showTimer: number | undefined;
+    let longWaitTimer: number | undefined;
+    let retryTimer: number | undefined;
+    let activeController: AbortController | undefined;
+
+    showTimer = window.setTimeout(() => {
+      if (!disposed && !ready) setBackendConnecting(true);
+    }, 400);
+    longWaitTimer = window.setTimeout(() => {
+      if (!disposed && !ready) setBackendLongWait(true);
+    }, 30_000);
+
+    async function checkBackend() {
+      if (disposed) return;
+
+      const controller = new AbortController();
+      activeController = controller;
+      const requestTimeout = window.setTimeout(() => controller.abort(), 15_000);
+
+      try {
+        const response = await fetch("/api/backend/actuator/health", {
+          method: "GET",
+          headers: { accept: "application/json" },
+          cache: "no-store",
+          signal: controller.signal,
+        });
+        const health = response.ok
+          ? await response.json().catch(() => null) as { status?: string } | null
+          : null;
+
+        if (health?.status === "UP") {
+          ready = true;
+          if (!disposed) {
+            setBackendConnecting(false);
+            setBackendLongWait(false);
+          }
+          return;
+        }
+      } catch {
+        // A sleeping or temporarily unavailable backend is retried below.
+      } finally {
+        window.clearTimeout(requestTimeout);
+        if (activeController === controller) activeController = undefined;
+      }
+
+      if (disposed) return;
+      attempt += 1;
+      const delay = Math.min(1_000 * 2 ** Math.min(attempt, 3), 8_000);
+      retryTimer = window.setTimeout(() => void checkBackend(), delay);
+    }
+
+    void checkBackend();
+
+    return () => {
+      disposed = true;
+      if (showTimer !== undefined) window.clearTimeout(showTimer);
+      if (longWaitTimer !== undefined) window.clearTimeout(longWaitTimer);
+      if (retryTimer !== undefined) window.clearTimeout(retryTimer);
+      activeController?.abort();
+    };
+  }, []);
 
   const canSubmit =
     email.trim().includes("@") &&
@@ -100,6 +169,21 @@ export function AuthForm() {
         {registering ? "Create your account" : "Sign in"}
       </h1>
 
+      {backendConnecting && (
+        <p
+          role="status"
+          aria-live="polite"
+          className="flex items-center gap-2 text-[13px] text-on-background-muted"
+        >
+          <span
+            aria-hidden="true"
+            className="size-3 animate-spin rounded-full border-2 border-accent/25 border-t-accent"
+          />
+          {backendLongWait
+            ? "The server is taking longer than usual. Still connecting…"
+            : "Connecting to the server…"}
+        </p>
+      )}
       <Field label="Email">
         <input
           type="email"
