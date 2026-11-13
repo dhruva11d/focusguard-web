@@ -26,6 +26,8 @@ export async function backendFetch<T>(path: string, init: RequestInit = {}): Pro
   });
   if (response.status === 204) return null as T;
 
+
+  
   const contentType = response.headers.get("content-type") ?? "";
   const body = contentType.includes("application/json") ? await response.json() : await response.text();
   if (!response.ok) {
