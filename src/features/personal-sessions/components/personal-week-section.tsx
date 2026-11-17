@@ -4,7 +4,7 @@ import { useState } from "react";
 import { CurveChartCard } from "@/components/ui/curve-chart-card";
 import { StatPill, AddPill } from "@/components/ui/stat-pill";
 import { formatMinutes } from "@/lib/format-session";
-import { startOfWeek, summarizeWeek, percentChange, formatWeekRange } from "../lib/weekly-summary";
+import { startOfWeek, summarizeWeek, formatWeekRange } from "../lib/weekly-summary";
 import type { PersonalSessionRecord } from "../types";
 
 /**
@@ -31,10 +31,9 @@ export function PersonalWeekSection({ records }: { records: PersonalSessionRecor
     setWeekOffset(next);
     if (next === 0) setSelectedDay(new Date().getDay());
   }
- 
+
   const weekStart = weekStartFor(weekOffset);
   const week = summarizeWeek(records, weekStart);
-  const previous = summarizeWeek(records, weekStartFor(weekOffset - 1));
 
   const earliestStart = records.reduce<Date | null>((earliest, r) => {
     const d = new Date(r.startedAt);
@@ -61,20 +60,17 @@ export function PersonalWeekSection({ records }: { records: PersonalSessionRecor
           label="Sessions"
           value={`${week.sessionCount}`}
           tone="magenta"
-          changePercent={percentChange(week.sessionCount, previous.sessionCount)}
         />
         <StatPill
           label="Average length"
           value={`${Math.floor(week.averageSessionLengthSeconds / 60)}`}
           unit="min"
           tone="indigo"
-          changePercent={percentChange(week.averageSessionLengthSeconds, previous.averageSessionLengthSeconds)}
         />
         <StatPill
           label="Violations"
           value={`${week.violationCount}`}
           tone="sunset"
-          changePercent={percentChange(week.violationCount, previous.violationCount)}
         />
         <AddPill href="/personal" label="Start a focus session" />
       </div>
