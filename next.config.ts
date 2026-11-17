@@ -6,6 +6,9 @@ const nextConfig: NextConfig = {
   // "use cache") around ordinary dynamic rendering — e.g. the root route's
   // auth-based redirect() can't prerender under them. Left off in favor of
   // standard dynamic rendering, which handles cookies()/redirect() as-is.
+  experimental: {
+    agentUpgrade: "security",
+  },
   turbopack: {
     rules: {
       "*.css": {
