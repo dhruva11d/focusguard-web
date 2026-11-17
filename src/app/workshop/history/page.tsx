@@ -1,5 +1,5 @@
+import { BackLink } from "@/components/ui/back-link";
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { getCurrentAccountServer, serverBackendGet } from "@/lib/backend/server";
 import { Hairline } from "@/components/ui/hairline";
 import { statusLabel } from "@/features/sessions/lib/status-label";
@@ -19,7 +19,7 @@ export default async function HistoryPage() {
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-sm px-8 py-8">
-      <header className="flex items-center pb-6"><Link href="/workshop" className="text-[15px] font-medium text-accent">← Community</Link></header>
+      <header className="flex items-center pb-6"><BackLink href="/workshop" label="Community" /></header>
       <h1 className="pb-6 text-[26px] font-semibold tracking-[-0.2px]">Community History</h1>
       {loadError ? (
         <p className="py-4 text-[15px] text-violation">Could not load your history.</p>

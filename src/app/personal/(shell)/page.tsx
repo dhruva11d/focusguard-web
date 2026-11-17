@@ -1,3 +1,4 @@
+import { BackLink } from "@/components/ui/back-link";
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -34,7 +35,7 @@ async function PersonalPageContent() {
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-sm px-8 py-8">
-      <header className="flex items-center pb-6"><Link href="/workshop" className="text-[15px] font-medium text-accent">← Workshop</Link></header>
+      <header className="flex items-center pb-6"><BackLink href="/workshop" label="Workshop" /></header>
       <HeroCard>
         <p className="text-[15px] text-hero-on-surface-muted">Today</p>
         <p className="pt-2 text-[40px] leading-none font-semibold tracking-[-0.5px] tabular-nums">{formatMinutes(todayFocusedSeconds)}</p>
