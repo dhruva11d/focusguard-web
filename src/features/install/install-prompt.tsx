@@ -145,7 +145,32 @@ export function InstallAppCard() {
   );
 }
 
-function ShareIcon() {
+export type InstallState = "installed" | "ready" | "ios" | "manual";
+
+function currentInstallState(): InstallState {
+  if (isStandalone()) return "installed";
+  if (deferredPrompt) return "ready";
+  if (getPlatform() === "ios") return "ios";
+  return "manual";
+}
+
+/** Install status for the dedicated /install page (ignores "Not now"). */
+export function useInstallState(): InstallState {
+  return useSyncExternalStore(subscribe, currentInstallState, () => "manual" as InstallState);
+}
+
+/** Shows the browser's install dialog. Must run from a tap or click. */
+export async function runInstall(): Promise<"accepted" | "dismissed" | "unavailable"> {
+  const prompt = deferredPrompt;
+  if (!prompt) return "unavailable";
+  await prompt.prompt();
+  const { outcome } = await prompt.userChoice;
+  deferredPrompt = null;
+  notify();
+  return outcome;
+}
+
+export function ShareIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="inline -mt-0.5" aria-hidden>
       <path d="M12 3v12M8 7l4-4 4 4" strokeLinecap="round" strokeLinejoin="round" />
