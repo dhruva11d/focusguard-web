@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#f4f5f8" />
+    <title>FocusGuard · Offline</title>
+    <!--
+      Served by public/sw.js when a page load fails with no connection.
+      Fully self-contained (inline styles, no scripts from the network)
+      because nothing else is reachable while offline. Colors match the
+      "Pearl Iris" tokens in src/app/globals.css.
+    -->
+    <style>
+      :root {
+        --background: #f4f5f8;
+        --surface: #ffffff;
+        --on-background: #202434;
+        --muted: #687084;
+        --accent: #6875d8;
+        --lavender: #9a91de;
+        --offline: #7c8494;
+      }
+      * { box-sizing: border-box; }
+      html, body { height: 100%; margin: 0; }
+      body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px 16px;
+        background: var(--background);
+        color: var(--on-background);
+        font-family: "Jost", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      main {
+        width: 100%;
+        max-width: 360px;
+        padding: 32px 24px;
+        border-radius: 22px;
+        background: var(--surface);
+        box-shadow: 0 8px 24px rgb(32 36 52 / 8%);
+        text-align: center;
+      }
+      .icon {
+        display: block;
+        margin: 0 auto;
+        width: 64px;
+        height: 64px;
+        border-radius: 16px;
+      }
+      .status {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin: 20px 0 8px;
+        font-size: 13px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--offline);
+      }
+      .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--offline);
+      }
+      h1 {
+        margin: 0 0 8px;
+        font-size: 24px;
+        font-weight: 500;
+      }
+      p {
+        margin: 0 0 24px;
+        font-size: 15px;
+        line-height: 1.5;
+        color: var(--muted);
+      }
+      button {
+        width: 100%;
+        padding: 12px 16px;
+        border: 0;
+        border-radius: 12px;
+        background: linear-gradient(135deg, var(--accent), var(--lavender));
+        color: #fff;
+        font: inherit;
+        font-size: 15px;
+        font-weight: 500;
+        cursor: pointer;
+      }
+      button:active { opacity: 0.85; }
+      .hint {
+        margin: 12px 0 0;
+        font-size: 13px;
+        color: var(--muted);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <img class="icon" src="/icons/app/icon-192.png" alt="" width="64" height="64" />
+      <div class="status" role="status"><span class="dot"></span>No connection</div>
+      <h1>You're offline</h1>
+      <p>FocusGuard needs the internet to load your rooms and sessions. Check your Wi-Fi or mobile data.</p>
+      <button type="button" id="retry">Try again</button>
+      <p class="hint">This page reloads by itself when you're back online.</p>
+    </main>
+    <script>
+      function retry() { location.reload(); }
+      document.getElementById("retry").addEventListener("click", retry);
+      window.addEventListener("online", retry);
+    </script>
+  </body>
+</html>

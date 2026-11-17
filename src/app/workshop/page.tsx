@@ -6,6 +6,7 @@ import { Hairline } from "@/components/ui/hairline";
 import { SectionLabel } from "@/components/ui/section-label";
 import { GlowActionTile } from "@/components/ui/glow-action-tile";
 import { SignOutButton } from "@/features/auth/components/sign-out-button";
+import { InstallAppCard } from "@/features/install/install-prompt";
 import type { Room } from "@/features/rooms/types";
 
 type MyRoom = Room & { membershipRole: string; joinedAt: string };
@@ -32,11 +33,13 @@ export default async function WorkshopPage() {
         <SignOutButton />
       </div>
 
+      <InstallAppCard />
+
       <QuietActionRow href="/personal" icon={<StopwatchIcon />} title="Personal focus" subtitle="Measure your own focus time, solo." />
       <Hairline />
 
       {isHost && (
-        <div className="mb-8">
+        <div className="mt-4 mb-8">
           <GlowActionTile href="/workshop/create" icon={<PlusCircleIcon />} title="Create a room" subtitle="Start a shared focus session." gradient="linear-gradient(135deg, var(--color-accent), var(--color-lavender))" shadowColor="rgb(154 145 222 / 35%)" />
         </div>
       )}
